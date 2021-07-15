@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>O2-GuntherGlahn</title>
+</head>
+
+<body>
+  <input type="text">
+  <span></span>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.6.3/rxjs.umd.min.js"></script>
+
+  <script>
+    const { fromEvent, operators: { map, catchError, takeUntil, filter } } = rxjs
+
+    let input = document.querySelector('input')
+    let span = document.querySelector('span')
+
+    const setSpanValueAndResetInput = (value, resetInput) => {
+      span.innerHTML = value !== '' ? value : ''
+      if (resetInput) {
+        input.value = ''
+        input.disabled = true
+      }
+    }
+
+    const inputEvent = fromEvent(input, 'input')
+      .pipe(
+        map((event) => {
+          let returnValue = ''
+          let reversedValue = event.target.value.split('').reverse().join('')
+          if (event.target.value === 'error') {
+            throw "Error en el observable"
+          } else {
+            return reversedValue
+          }
+        }),
+        takeUntil(
+          fromEvent(input, 'input')
+            .pipe(
+              filter((event) => event.target.value === 'complete'),
+            )
+        ),
+        catchError((err) => {
+          throw err;
+        })
+      )
+
+    const subscription = inputEvent.subscribe(
+      value => setSpanValueAndResetInput(value, false),
+      err => {
+        console.log(err)
+        setSpanValueAndResetInput('', true)
+        subscription.unsubscribe()
+      },
+      () => {
+        console.log('Observable termina de forma normal')
+        setSpanValueAndResetInput('', true)
+        subscription.unsubscribe()
+      }
+    )
+
+    setTimeout(() => {
+      console.log('Desuscripción automática')
+      setSpanValueAndResetInput('', true)
+      subscription.unsubscribe()
+    }, 30000)
+
+
+  </script>
+
+</body>
+
+</html>
